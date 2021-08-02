@@ -42,12 +42,16 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <WS2812FX.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 extern const char index_html[];
 extern const char main_js[];
 
 #define WIFI_SSID "Yuri_Duda"
 #define WIFI_PASSWORD "Australia2us"
+#define OLED_address  0x3c      // Adresse de l'écran OLED sur le bus I2C
 
 //#define STATIC_IP                       // uncomment for static IP, set IP below
 #ifdef STATIC_IP
@@ -71,6 +75,9 @@ extern const char main_js[];
 #define DEFAULT_BRIGHTNESS 128
 #define DEFAULT_SPEED 1000
 #define DEFAULT_MODE FX_MODE_STATIC
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 
 unsigned long auto_last_change = 0;
 unsigned long last_wifi_check_time = 0;
@@ -81,12 +88,35 @@ boolean auto_cycle = false;
 WS2812FX ws2812fx = WS2812FX(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 ESP8266WebServer server(HTTP_PORT);
 
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
 void setup(){
   Serial.begin(115200);
   pinMode(3, FUNCTION_3);
   delay(500);
   Serial.println("\n\nStarting...");
+  
+  Wire.pins(0, 2);
 
+  Serial.println("Initialise ecran OLED...");
+  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+  }
+
+  // Show initial display buffer contents on the screen --
+  // the library initializes this with an Adafruit splash screen.
+  display.display();
+  delay(1000); // Pause for 1 seconds
+  display.setTextSize(1);
+  // Clear the buffer
+  display.clearDisplay();
+  display.display();
+  display.setTextSize(1);      // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.setCursor(0, 0);     // Start at top-left corner
+  display.cp437(true);         // Use full 256 char 'Code Page 437' font
+  display.clearDisplay();
+  
   modes.reserve(5000);
   modes_setup();
 
@@ -97,6 +127,12 @@ void setup(){
   ws2812fx.setSpeed(DEFAULT_SPEED);
   ws2812fx.setBrightness(DEFAULT_BRIGHTNESS);
   ws2812fx.start();
+
+  display.clearDisplay();
+  display.println(F("Connecting to Wifi:"));
+  display.print(F("    "));
+  display.println(F(WIFI_SSID));
+  display.display();
 
   Serial.println("Wifi setup");
   wifi_setup();
@@ -112,42 +148,6 @@ void setup(){
 
   Serial.println("ready!");
 }
-
-
-void loop() {
-  unsigned long now = millis();
-
-  server.handleClient();
-  ws2812fx.service();
-
-  if(now - last_wifi_check_time > WIFI_TIMEOUT) {
-    Serial.print("Checking WiFi... ");
-    if(WiFi.status() != WL_CONNECTED) {
-      Serial.println("WiFi connection lost. Reconnecting...");
-      wifi_setup();
-    } else {
-      Serial.println("OK");
-    }
-    last_wifi_check_time = now;
-  }
-
-  if(auto_cycle && (now - auto_last_change > 10000)) { // cycle effect mode every 10 seconds
-    uint8_t next_mode = (ws2812fx.getMode() + 1) % ws2812fx.getModeCount();
-    if(sizeof(myModes) > 0) { // if custom list of modes exists
-      for(uint8_t i=0; i < sizeof(myModes); i++) {
-        if(myModes[i] == ws2812fx.getMode()) {
-          next_mode = ((i + 1) < sizeof(myModes)) ? myModes[i + 1] : myModes[0];
-          break;
-        }
-      }
-    }
-    ws2812fx.setMode(next_mode);
-    Serial.print("mode is "); Serial.println(ws2812fx.getModeName(ws2812fx.getMode()));
-    auto_last_change = now;
-  }
-}
-
-
 
 /*
  * Connect to WiFi. If no connection is made within WIFI_TIMEOUT, ESP gets resettet.
@@ -268,4 +268,71 @@ void srv_handle_set() {
     }
   }
   server.send(200, "text/plain", "OK");
+}
+
+
+void loop() {
+  unsigned long now = millis();
+  bool wifiConnected = false;
+  server.handleClient();
+  ws2812fx.service();
+
+  if ( WiFi.status() == WL_CONNECTED)
+  {
+    if (!wifiConnected)
+    {
+      display.clearDisplay();
+      display.setCursor(0,0);
+      display.println();
+      display.println(F("Connected to Wifi:"));
+      display.print(F("    "));
+      display.println(F(WIFI_SSID));
+      display.println();
+      display.println(F("IP Address:"));
+      display.print(F("    "));
+      display.println(WiFi.localIP());
+      display.display();
+      wifiConnected = true;
+    }
+  }
+  else
+  {
+    if (wifiConnected)
+    {
+      display.clearDisplay();
+      display.setCursor(0,0);
+      display.println(F("Connecting to Wifi:"));
+      display.print(F("    "));
+      display.println(F(WIFI_SSID));
+      display.display();
+      wifiConnected = false;
+    }
+  }
+
+  if(now - last_wifi_check_time > WIFI_TIMEOUT) {
+    Serial.print("Checking WiFi... ");
+
+    if(WiFi.status() != WL_CONNECTED) {
+      Serial.println("WiFi connection lost. Reconnecting...");
+      wifi_setup();
+    } else {
+      //Serial.println("OK");
+    }
+    last_wifi_check_time = now;
+  }
+
+  if(auto_cycle && (now - auto_last_change > 10000)) { // cycle effect mode every 10 seconds
+    uint8_t next_mode = (ws2812fx.getMode() + 1) % ws2812fx.getModeCount();
+    if(sizeof(myModes) > 0) { // if custom list of modes exists
+      for(uint8_t i=0; i < sizeof(myModes); i++) {
+        if(myModes[i] == ws2812fx.getMode()) {
+          next_mode = ((i + 1) < sizeof(myModes)) ? myModes[i + 1] : myModes[0];
+          break;
+        }
+      }
+    }
+    ws2812fx.setMode(next_mode);
+    // Serial.print("mode is "); Serial.println(ws2812fx.getModeName(ws2812fx.getMode()));
+    auto_last_change = now;
+  }
 }
