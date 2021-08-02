@@ -84,6 +84,7 @@ unsigned long last_wifi_check_time = 0;
 String modes = "";
 uint8_t myModes[] = {}; // *** optionally create a custom list of effect/mode numbers
 boolean auto_cycle = false;
+bool wifiConnected = false;
 
 WS2812FX ws2812fx = WS2812FX(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 ESP8266WebServer server(HTTP_PORT);
@@ -273,13 +274,12 @@ void srv_handle_set() {
 
 void loop() {
   unsigned long now = millis();
-  bool wifiConnected = false;
   server.handleClient();
   ws2812fx.service();
 
   if ( WiFi.status() == WL_CONNECTED)
   {
-    if (!wifiConnected)
+    if (wifiConnected == false)
     {
       display.clearDisplay();
       display.setCursor(0,0);
@@ -295,7 +295,7 @@ void loop() {
       wifiConnected = true;
     }
   }
-  else
+  else if ( WiFi.status() == WL_DISCONNECTED)
   {
     if (wifiConnected)
     {
