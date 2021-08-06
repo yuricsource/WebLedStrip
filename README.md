@@ -1,7 +1,7 @@
 # WebLedStrip
 This project is a little recharchable light box that helps me to take nice picures.
 
-This project is based on Arduino IDE on esp8266 (ESP-01).
+This project is based on Arduino and esp8266 (ESP-01).
 
 Parts:
 
