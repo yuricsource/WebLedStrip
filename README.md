@@ -15,8 +15,7 @@ Parts:
 
 3x Lithium Battery
 
-1x 3D printed box
-![](Documentation/8x8%20matrix%20box%20v3.stl)
+1x 3D printed box (Documentation/8x8%20matrix%20box%20v3.stl)
 
 This box has a web page where you can set the color of effect you need.
 ![](Documentation/webpage.png)
