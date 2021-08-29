@@ -1,7 +1,7 @@
 # WebLedStrip
 This project is a little recharchable light box that helps me to take nice picures.
 
-This project is based on Arduino IDE on esp8266 (ESP-01).
+This project is based on Arduino and esp8266 (ESP-01).
 
 Parts:
 
@@ -15,8 +15,7 @@ Parts:
 
 3x Lithium Battery
 
-1x 3D printed box
-
+1x 3D printed box (https://github.com/Yuri-R-Studio/WebLedStrip/blob/master/Documentation/8x8%20matrix%20box%20v3.stl)
 
 This box has a web page where you can set the color of effect you need.
 ![](Documentation/webpage.png)
