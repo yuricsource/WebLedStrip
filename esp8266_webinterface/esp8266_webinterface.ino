@@ -1,63 +1,34 @@
-/*
-  WS2812FX Webinterface.
-  
-  Harm Aldick - 2016
-  www.aldick.org
-
-  
-  FEATURES
-    * Webinterface with mode, color, speed and brightness selectors
-
-
-  LICENSE
-
-  The MIT License (MIT)
-
-  Copyright (c) 2016  Harm Aldick 
-
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-
-  The above copyright notice and this permission notice shall be included in
-  all copies or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-  THE SOFTWARE.
-
-  
-  CHANGELOG
-  2016-11-26 initial version
-  2018-01-06 added custom effects list option and auto-cycle feature
-  
-*/
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <WS2812FX.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include "image.h"
 
 extern const char index_html[];
 extern const char main_js[];
 
+#define FLUX_CAPACITOR 1
+
+#ifdef FLUX_CAPACITOR
+#define WIFI_SSID "Back to the Future"
+#define WIFI_PASSWORD "delorean"
+#define DEFAULT_COLOR 0xFF7F42
+#else
 #define WIFI_SSID "Yuri_Duda"
 #define WIFI_PASSWORD "Australia2us"
+#define DEFAULT_COLOR 0x000000
+#endif
+
 #define OLED_address  0x3c      // Adresse de l'écran OLED sur le bus I2C
 
-//#define STATIC_IP                       // uncomment for static IP, set IP below
 #ifdef STATIC_IP
   IPAddress ip(192,168,0,123);
   IPAddress gateway(192,168,0,1);
   IPAddress subnet(255,255,255,0);
+#else
+
 #endif
 
 // QUICKFIX...See https://github.com/esp8266/Arduino/issues/263
@@ -65,16 +36,27 @@ extern const char main_js[];
 #define max(a,b) ((a)>(b)?(a):(b))
 
 #define LED_PIN 3                       // 0 = GPIO0, 2=GPIO2
+
+#ifdef FLUX_CAPACITOR
+#define LED_COUNT 3
+#else
 #define LED_COUNT 64
+#endif
 
 #define WIFI_TIMEOUT 30000              // checks WiFi every ...ms. Reset after this time, if WiFi cannot reconnect.
 #define HTTP_PORT 80
 
-#define DEFAULT_COLOR 0x000000
-// #define DEFAULT_COLOR 0xFF5900
+
+#ifdef FLUX_CAPACITOR
+#define DEFAULT_BRIGHTNESS 64
+#define DEFAULT_SPEED 300
+#define DEFAULT_MODE 40
+#else
 #define DEFAULT_BRIGHTNESS 128
 #define DEFAULT_SPEED 1000
 #define DEFAULT_MODE FX_MODE_STATIC
+#endif
+
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
@@ -106,9 +88,13 @@ void setup(){
 
   // Show initial display buffer contents on the screen --
   // the library initializes this with an Adafruit splash screen.
+  display.clearDisplay(); //for Clearing the display
+  display.drawBitmap(0, 0, myBitmap, 128, 64, WHITE); // display.drawBitmap(x position, y position, bitmap data, bitmap width, bitmap height, color)
   display.display();
-  delay(1000); // Pause for 1 seconds
+  delay(1500); // Pause for 1 seconds
   display.setTextSize(1);
+
+#ifndef FLUX_CAPACITOR
   // Clear the buffer
   display.clearDisplay();
   display.display();
@@ -117,7 +103,7 @@ void setup(){
   display.setCursor(0, 0);     // Start at top-left corner
   display.cp437(true);         // Use full 256 char 'Code Page 437' font
   display.clearDisplay();
-  
+#endif
   modes.reserve(5000);
   modes_setup();
 
@@ -128,12 +114,14 @@ void setup(){
   ws2812fx.setSpeed(DEFAULT_SPEED);
   ws2812fx.setBrightness(DEFAULT_BRIGHTNESS);
   ws2812fx.start();
-
+  
+#ifndef FLUX_CAPACITOR
   display.clearDisplay();
   display.println(F("Connecting to Wifi:"));
   display.print(F("    "));
   display.println(F(WIFI_SSID));
   display.display();
+#endif
 
   Serial.println("Wifi setup");
   wifi_setup();
@@ -158,13 +146,14 @@ void wifi_setup() {
   Serial.print("Connecting to ");
   Serial.println(WIFI_SSID);
 
+#ifdef FLUX_CAPACITOR
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(WIFI_SSID, WIFI_PASSWORD, 8, 0, 4);
+#else
+  WiFi.mode(WIFI_STA);  
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  WiFi.mode(WIFI_STA);
-  #ifdef STATIC_IP  
-    WiFi.config(ip, gateway, subnet);
-  #endif
 
-  unsigned long connect_start = millis();
+    unsigned long connect_start = millis();
   while(WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
@@ -183,6 +172,10 @@ void wifi_setup() {
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
   Serial.println();
+#endif
+#ifdef STATIC_IP  
+  WiFi.config(ip, gateway, subnet);
+#endif
 }
 
 
@@ -276,7 +269,7 @@ void loop() {
   unsigned long now = millis();
   server.handleClient();
   ws2812fx.service();
-
+#ifndef FLUX_CAPACITOR
   if ( WiFi.status() == WL_CONNECTED)
   {
     if (wifiConnected == false)
@@ -308,7 +301,6 @@ void loop() {
       wifiConnected = false;
     }
   }
-
   if(now - last_wifi_check_time > WIFI_TIMEOUT) {
     Serial.print("Checking WiFi... ");
 
@@ -320,7 +312,7 @@ void loop() {
     }
     last_wifi_check_time = now;
   }
-
+#endif
   if(auto_cycle && (now - auto_last_change > 10000)) { // cycle effect mode every 10 seconds
     uint8_t next_mode = (ws2812fx.getMode() + 1) % ws2812fx.getModeCount();
     if(sizeof(myModes) > 0) { // if custom list of modes exists
