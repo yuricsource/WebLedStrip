@@ -9,7 +9,7 @@
 extern const char index_html[];
 extern const char main_js[];
 
-#define FLUX_CAPACITOR 1
+//#define FLUX_CAPACITOR 1
 
 #ifdef FLUX_CAPACITOR
 #define WIFI_SSID "Back to the Future"
@@ -35,7 +35,7 @@ extern const char main_js[];
 #define min(a,b) ((a)<(b)?(a):(b))
 #define max(a,b) ((a)>(b)?(a):(b))
 
-#define LED_PIN 3                       // 0 = GPIO0, 2=GPIO2
+#define LED_PIN 14                       // 0 = GPIO0, 2=GPIO2
 
 #ifdef FLUX_CAPACITOR
 #define LED_COUNT 3
@@ -47,15 +47,15 @@ extern const char main_js[];
 #define HTTP_PORT 80
 
 
-#ifdef FLUX_CAPACITOR
+//#ifdef FLUX_CAPACITOR
 #define DEFAULT_BRIGHTNESS 64
 #define DEFAULT_SPEED 300
 #define DEFAULT_MODE 40
-#else
-#define DEFAULT_BRIGHTNESS 128
-#define DEFAULT_SPEED 1000
-#define DEFAULT_MODE FX_MODE_STATIC
-#endif
+//#else
+//#define DEFAULT_BRIGHTNESS 128
+//#define DEFAULT_SPEED 1000
+//#define DEFAULT_MODE FX_MODE_STATIC
+//#endif
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
@@ -75,7 +75,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 void setup(){
   Serial.begin(115200);
-  pinMode(3, FUNCTION_3);
+//  pinMode(LED_PIN, FUNCTION_3);
   delay(500);
   Serial.println("\n\nStarting...");
   
