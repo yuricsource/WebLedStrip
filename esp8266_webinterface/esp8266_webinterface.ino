@@ -47,15 +47,15 @@ extern const char main_js[];
 #define HTTP_PORT 80
 
 
-//#ifdef FLUX_CAPACITOR
+#ifdef FLUX_CAPACITOR
 #define DEFAULT_BRIGHTNESS 64
 #define DEFAULT_SPEED 300
 #define DEFAULT_MODE 40
-//#else
-//#define DEFAULT_BRIGHTNESS 128
-//#define DEFAULT_SPEED 1000
-//#define DEFAULT_MODE FX_MODE_STATIC
-//#endif
+#else
+#define DEFAULT_BRIGHTNESS 128
+#define DEFAULT_SPEED 1000
+#define DEFAULT_MODE FX_MODE_STATIC
+#endif
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
@@ -75,7 +75,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 void setup(){
   Serial.begin(115200);
-//  pinMode(LED_PIN, FUNCTION_3);
+  pinMode(LED_PIN, FUNCTION_3);
   delay(500);
   Serial.println("\n\nStarting...");
   
